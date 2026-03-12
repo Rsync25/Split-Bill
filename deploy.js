@@ -1,4 +1,4 @@
-const hre = require("hardhat");
+import hre from "hardhat";
 
 async function main() {
   console.log("Deploying SimpleSplitBill contract...");
@@ -6,12 +6,9 @@ async function main() {
   const SimpleSplitBill = await hre.ethers.getContractFactory("SimpleSplitBill");
   const bill = await SimpleSplitBill.deploy();
   
-  await bill.deployed(); // ethers v5 uses deployed(), not waitForDeployment()
+  await bill.deployed();
   
   console.log("✅ SimpleSplitBill deployed to:", bill.address);
 }
 
-main().catch((error) => {
-  console.error(error);
-  process.exitCode = 1;
-});
+main().catch(console.error);
