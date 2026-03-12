@@ -1,8 +1,6 @@
-require("@nomicfoundation/hardhat-toolbox");
-require("@nomiclabs/hardhat-ethers");
+import "@nomiclabs/hardhat-ethers";
 
-/** @type import('hardhat/config').HardhatUserConfig */
-module.exports = {
+const config = {
   solidity: "0.8.20",
   networks: {
     hardhat: {
@@ -11,7 +9,7 @@ module.exports = {
     rskTestnet: {
       url: "https://public-node.testnet.rsk.co",
       chainId: 31,
-      accounts: ["337ca0f0adbb56145d55898ba4216fe486eb031d53ceeb4b95ca93a71428a57e"] // Replace with your private key (without 0x)
+      accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : []
     }
   },
   paths: {
@@ -21,3 +19,5 @@ module.exports = {
     tests: "./test"
   }
 };
+
+export default config;
