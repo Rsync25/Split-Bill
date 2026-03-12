@@ -1,4 +1,5 @@
 import "@nomiclabs/hardhat-ethers";
+require("dotenv").config();
 
 const config = {
   solidity: "0.8.20",
