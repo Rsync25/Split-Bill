@@ -21,7 +21,7 @@ function App() {
   const [amount, setAmount] = useState('');
   const [participants, setParticipants] = useState('');
   
-  const CONTRACT_ADDRESS = '0x...'; // Deploy and add your address here
+  const CONTRACT_ADDRESS = '0xeA2B73659d766bC71d18aaCf924D6effA1f2bbbd';
 
   // Connect wallet
   const connectWallet = async () => {
