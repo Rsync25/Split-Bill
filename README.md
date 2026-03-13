@@ -24,6 +24,3 @@ Demo project for Final Project on Roostock Dev Course
 3. Create a bill with 2 participants
 4. Pay from each account
 5. Settle the bill
-
-## Screenshots
-[Add screenshots here]
