@@ -1,5 +1,8 @@
 # Split-Bill
 
+<img width="840" height="200" alt="image" src="https://github.com/user-attachments/assets/56cc87b8-3104-4ac0-8653-8f9ba1f6bf64" />
+
+
 Demo project for Final Project on Roostock Dev Course
 
 # SplitBill Mini - Module 8 Submission
