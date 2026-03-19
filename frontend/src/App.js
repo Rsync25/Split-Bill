@@ -1,32 +1,24 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ethers } from 'ethers';
-
-// Contract ABI (simplified)
-const CONTRACT_ABI = [
-  "function createBill(string memory _title, uint _totalAmount, uint _deadline, address[] memory _participants) external returns (uint)",
-  "function payBill(uint _billId) external payable",
-  "function settleBill(uint _billId) external",
-  "function getBill(uint _billId) external view returns (string memory title, uint totalAmount, uint deadline, address creator, address[] memory participants, bool settled, uint paidCount)",
-  "function billCount() external view returns (uint)"
-];
+import ContractABI from './abis/SimpleEscrow.json'; // Just renamed ABI file
 
 function App() {
   const [account, setAccount] = useState('');
   const [contract, setContract] = useState(null);
-  const [bills, setBills] = useState([]);
+  const [escrows, setEscrows] = useState([]); // Renamed from bills
   const [loading, setLoading] = useState(false);
   
-  // Form state
+  // Form state - ADDED payee field
   const [title, setTitle] = useState('');
+  const [payee, setPayee] = useState(''); // NEW FIELD
   const [amount, setAmount] = useState('');
-  const [participants, setParticipants] = useState('');
-  
-  const CONTRACT_ADDRESS = '0xeA2B73659d766bC71d18aaCf924D6effA1f2bbbd';
+  const [deadline, setDeadline] = useState('');
 
-  // Connect wallet
+  const CONTRACT_ADDRESS = '0xYourAddressHere'; // Same address
+
   const connectWallet = async () => {
     if (!window.ethereum) {
-      alert('Please install MetaMask!');
+      alert('Install MetaMask!');
       return;
     }
     
@@ -36,61 +28,75 @@ function App() {
       const signer = provider.getSigner();
       const address = await signer.getAddress();
       
-      const contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer);
+      const contract = new ethers.Contract(CONTRACT_ADDRESS, ContractABI, signer);
       
       setAccount(address);
       setContract(contract);
-      loadBills(contract);
+      loadEscrows(contract, address); // Renamed from loadBills
     } catch (error) {
       console.error(error);
     }
   };
 
-  // Load bills
-  const loadBills = async (contract) => {
+  // NEW FUNCTION - loads escrows instead of bills
+  const loadEscrows = async (contract, address) => {
     try {
-      const count = await contract.billCount();
-      const billList = [];
+      const count = await contract.escrowCount(); // Changed from billCount
+      const escrowList = [];
       
       for (let i = 1; i <= count; i++) {
-        const bill = await contract.getBill(i);
-        billList.push({
-          id: i,
-          title: bill.title,
-          totalAmount: ethers.utils.formatEther(bill.totalAmount),
-          deadline: new Date(bill.deadline * 1000).toLocaleString(),
-          creator: bill.creator,
-          participants: bill.participants,
-          settled: bill.settled,
-          paidCount: bill.paidCount.toString()
-        });
+        const escrow = await contract.getEscrow(i); // Changed from getBill
+        // Show only escrows where user is involved
+        if (escrow.payer === address || escrow.payee === address) {
+          escrowList.push({
+            id: i,
+            title: escrow.title,
+            totalAmount: ethers.utils.formatEther(escrow.totalAmount),
+            deadline: new Date(escrow.deadline * 1000).toLocaleString(),
+            payer: escrow.payer,
+            payee: escrow.payee,
+            settled: escrow.settled,
+            payerApproved: escrow.payerApproved,
+            payeeApproved: escrow.payeeApproved
+          });
+        }
       }
-      
-      setBills(billList);
+      setEscrows(escrowList);
     } catch (error) {
       console.error(error);
     }
   };
 
-  // Create bill
-  const createBill = async (e) => {
+  // CHANGED - createEscrow instead of createBill
+  const createEscrow = async (e) => {
     e.preventDefault();
     if (!contract) return;
     
     setLoading(true);
     try {
-      const participantList = participants.split(',').map(p => p.trim());
-      const amountWei = ethers.utils.parseEther(amount);
-      const deadline = Math.floor(Date.now() / 1000) + 7 * 24 * 60 * 60; // 7 days
+      // Convert days to timestamp
+      const deadlineDays = parseInt(deadline);
+      const deadlineTimestamp = Math.floor(Date.now() / 1000) + (deadlineDays * 24 * 60 * 60);
       
-      const tx = await contract.createBill(title, amountWei, deadline, participantList);
+      const amountWei = ethers.utils.parseEther(amount);
+      
+      // Call createEscrow with payee parameter
+      const tx = await contract.createEscrow(
+        title, 
+        amountWei, 
+        deadlineTimestamp,
+        payee, // NEW - payee address
+        { value: amountWei }
+      );
+      
       await tx.wait();
       
-      alert('Bill created!');
+      alert('Escrow created!'); // Changed message
       setTitle('');
+      setPayee(''); // Clear new field
       setAmount('');
-      setParticipants('');
-      loadBills(contract);
+      setDeadline('');
+      loadEscrows(contract, account);
     } catch (error) {
       console.error(error);
       alert('Error: ' + error.message);
@@ -98,18 +104,13 @@ function App() {
     setLoading(false);
   };
 
-  // Pay bill
-  const payBill = async (billId, amount) => {
-    if (!contract) return;
-    
+  // RENAMED - approve instead of payBill
+  const approve = async (id) => {
     setLoading(true);
     try {
-      const amountWei = ethers.utils.parseEther(amount);
-      const tx = await contract.payBill(billId, { value: amountWei });
+      const tx = await contract.approve(id);
       await tx.wait();
-      
-      alert('Payment sent!');
-      loadBills(contract);
+      loadEscrows(contract, account);
     } catch (error) {
       console.error(error);
       alert('Error: ' + error.message);
@@ -117,17 +118,27 @@ function App() {
     setLoading(false);
   };
 
-  // Settle bill
-  const settleBill = async (billId) => {
-    if (!contract) return;
-    
+  // RENAMED - complete instead of settleBill
+  const complete = async (id) => {
     setLoading(true);
     try {
-      const tx = await contract.settleBill(billId);
+      const tx = await contract.complete(id);
       await tx.wait();
-      
-      alert('Bill settled!');
-      loadBills(contract);
+      loadEscrows(contract, account);
+    } catch (error) {
+      console.error(error);
+      alert('Error: ' + error.message);
+    }
+    setLoading(false);
+  };
+
+  // NEW FUNCTION - refund
+  const refund = async (id) => {
+    setLoading(true);
+    try {
+      const tx = await contract.refund(id);
+      await tx.wait();
+      loadEscrows(contract, account);
     } catch (error) {
       console.error(error);
       alert('Error: ' + error.message);
@@ -136,109 +147,157 @@ function App() {
   };
 
   return (
-    <div style={{ padding: '20px', maxWidth: '800px', margin: '0 auto' }}>
-      <h1>💰 SplitBill Mini</h1>
+    <div style={styles.container}>
+      <h1>🔒 Simple Escrow</h1> {/* Changed title */}
       
       {!account ? (
-        <button 
-          onClick={connectWallet}
-          style={styles.button}
-        >
+        <button onClick={connectWallet} style={styles.button}>
           Connect Wallet
         </button>
       ) : (
-        <div>
+        <>
           <p>Connected: {account.slice(0,6)}...{account.slice(-4)}</p>
           
-          {/* Create Bill Form */}
+          {/* Create Escrow Form - ADDED payee field */}
           <div style={styles.card}>
-            <h2>Create New Bill</h2>
-            <form onSubmit={createBill}>
+            <h3>Create Escrow</h3> {/* Changed title */}
+            <form onSubmit={createEscrow}>
               <input
-                type="text"
-                placeholder="Title (e.g., Dinner)"
+                style={styles.input}
+                placeholder="Title (e.g., Freelance Payment)"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                style={styles.input}
                 required
               />
+              
+              {/* NEW FIELD - Payee Address */}
               <input
+                style={styles.input}
+                placeholder="Payee Address (0x...)"
+                value={payee}
+                onChange={(e) => setPayee(e.target.value)}
+                required
+              />
+              
+              <input
+                style={styles.input}
                 type="number"
                 step="0.001"
-                placeholder="Total Amount (RBTC)"
+                placeholder="Amount (RBTC)"
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
-                style={styles.input}
                 required
               />
+              
               <input
-                type="text"
-                placeholder="Participants (comma-separated addresses)"
-                value={participants}
-                onChange={(e) => setParticipants(e.target.value)}
                 style={styles.input}
+                type="number"
+                placeholder="Deadline (days)"
+                value={deadline}
+                onChange={(e) => setDeadline(e.target.value)}
                 required
               />
+              
               <button 
                 type="submit" 
                 disabled={loading}
                 style={styles.button}
               >
-                {loading ? 'Creating...' : 'Create Bill'}
+                {loading ? 'Creating...' : 'Create Escrow'}
               </button>
             </form>
           </div>
           
-          {/* Bills List */}
+          {/* Escrows List - Renamed from Bills */}
           <div style={styles.card}>
-            <h2>Bills</h2>
-            {bills.length === 0 ? (
-              <p>No bills yet</p>
+            <h3>Your Escrows</h3> {/* Changed title */}
+            {escrows.length === 0 ? (
+              <p>No escrows yet</p>
             ) : (
-              bills.map(bill => (
-                <div key={bill.id} style={styles.billItem}>
-                  <h3>{bill.title}</h3>
-                  <p>Amount: {bill.totalAmount} RBTC</p>
-                  <p>Deadline: {bill.deadline}</p>
-                  <p>Paid: {bill.paidCount}/{bill.participants.length}</p>
-                  <p>Creator: {bill.creator === account ? 'You' : bill.creator.slice(0,6)}</p>
-                  
-                  {!bill.settled && (
-                    <div>
-                      {bill.participants.includes(account) && !bill.settled && (
-                        <button
-                          onClick={() => payBill(bill.id, (bill.totalAmount / bill.participants.length).toString())}
-                          disabled={loading}
-                          style={{...styles.button, backgroundColor: '#10b981'}}
-                        >
-                          Pay My Share
-                        </button>
-                      )}
-                      
-                      {bill.creator === account && bill.paidCount === bill.participants.length && (
-                        <button
-                          onClick={() => settleBill(bill.id)}
-                          disabled={loading}
-                          style={{...styles.button, backgroundColor: '#f59e0b'}}
-                        >
-                          Settle Bill
-                        </button>
-                      )}
-                    </div>
-                  )}
-                  
-                  {bill.settled && <p style={{color: '#10b981'}}>✓ Settled</p>}
-                </div>
-              ))
+              escrows.map(escrow => {
+                const isPayer = escrow.payer === account;
+                const isPayee = escrow.payee === account;
+                const bothApproved = escrow.payerApproved && escrow.payeeApproved;
+                const deadlinePassed = new Date(escrow.deadline) < new Date();
+                
+                return (
+                  <div key={escrow.id} style={styles.escrowItem}>
+                    <h4>{escrow.title} (#{escrow.id})</h4>
+                    <p>Amount: <strong>{escrow.totalAmount} RBTC</strong></p>
+                    <p>Payer: {escrow.payer === account ? 'You' : escrow.payer.slice(0,6)}</p>
+                    <p>Payee: {escrow.payee === account ? 'You' : escrow.payee.slice(0,6)}</p>
+                    <p>Deadline: {escrow.deadline}</p>
+                    <p>Status: {
+                      escrow.settled ? '✅ Settled' :
+                      bothApproved ? '⏳ Ready to Complete' :
+                      `${escrow.payerApproved ? '✅' : '❌'} Payer, ${escrow.payeeApproved ? '✅' : '❌'} Payee`
+                    }</p>
+                    
+                    {/* Action Buttons */}
+                    {!escrow.settled && (
+                      <div>
+                        {/* Approve button for both parties */}
+                        {((isPayer && !escrow.payerApproved) || 
+                          (isPayee && !escrow.payeeApproved)) && (
+                          <button
+                            onClick={() => approve(escrow.id)}
+                            disabled={loading}
+                            style={{...styles.smallButton, backgroundColor: '#4f46e5'}}
+                          >
+                            Approve
+                          </button>
+                        )}
+                        
+                        {/* Complete button for payer when both approved */}
+                        {isPayer && bothApproved && !escrow.settled && (
+                          <button
+                            onClick={() => complete(escrow.id)}
+                            disabled={loading}
+                            style={{...styles.smallButton, backgroundColor: '#10b981'}}
+                          >
+                            Complete & Release Funds
+                          </button>
+                        )}
+                        
+                        {/* Refund button for payer if deadline passed */}
+                        {isPayer && deadlinePassed && !bothApproved && !escrow.settled && (
+                          <button
+                            onClick={() => refund(escrow.id)}
+                            disabled={loading}
+                            style={{...styles.smallButton, backgroundColor: '#f44336'}}
+                          >
+                            Refund (Deadline Passed)
+                          </button>
+                        )}
+                      </div>
+                    )}
+                    
+                    {escrow.settled && (
+                      <p style={{color: '#10b981', fontWeight: 'bold'}}>
+                        ✓ Escrow completed
+                      </p>
+                    )}
+                  </div>
+                );
+              })
             )}
           </div>
-        </div>
+          
+          {/* REMOVED: Yield tab, deposit buttons, claim buttons, charts */}
+        </>
       )}
     </div>
   );
 }
 
+// Styles - almost identical to before
 const styles = {
+  container: {
+    maxWidth: '800px',
+    margin: '0 auto',
+    padding: '20px',
+    fontFamily: 'Arial, sans-serif'
+  },
   button: {
     backgroundColor: '#4f46e5',
     color: 'white',
@@ -246,14 +305,25 @@ const styles = {
     border: 'none',
     borderRadius: '5px',
     cursor: 'pointer',
-    margin: '5px'
+    fontSize: '16px',
+    width: '100%'
+  },
+  smallButton: {
+    color: 'white',
+    padding: '5px 15px',
+    border: 'none',
+    borderRadius: '3px',
+    cursor: 'pointer',
+    margin: '5px',
+    fontSize: '14px'
   },
   input: {
     width: '100%',
     padding: '10px',
     margin: '10px 0',
     borderRadius: '5px',
-    border: '1px solid #ddd'
+    border: '1px solid #ddd',
+    fontSize: '14px'
   },
   card: {
     backgroundColor: '#f9fafb',
@@ -262,11 +332,12 @@ const styles = {
     margin: '20px 0',
     boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
   },
-  billItem: {
+  escrowItem: {
     border: '1px solid #e5e7eb',
     padding: '15px',
     borderRadius: '5px',
-    margin: '10px 0'
+    margin: '10px 0',
+    backgroundColor: 'white'
   }
 };
 
