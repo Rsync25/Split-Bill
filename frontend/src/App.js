@@ -14,7 +14,7 @@ function App() {
   const [amount, setAmount] = useState('');
   const [deadline, setDeadline] = useState('');
 
-  const CONTRACT_ADDRESS = '0xYourAddressHere'; // Same address
+  const CONTRACT_ADDRESS = '0x24a9F4Ba13A490F7165725D311bB668814EdB8D1' // Update Contract!
 
   const connectWallet = async () => {
     if (!window.ethereum) {
