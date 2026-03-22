@@ -9,8 +9,9 @@ Demo project for Final Project on Roostock Dev Course
 
 ## Contract Deployment
 - **Network:** RSK Testnet
-- **Contract Address:** 0xeA2B73659d766bC71d18aaCf924D6effA1f2bbbd
-- **Explorer Link:** [View on RSK Explorer](https://explorer.testnet.rootstock.io/address/0xeA2B73659d766bC71d18aaCf924D6effA1f2bbbd)
+- **Contract Address:** 0x24a9f4ba13a490f7165725d311bb668814edb8d1
+- **Explorer Link:** [View on RSK Explorer](https://explorer.testnet.rootstock.io/address/0x24a9f4ba13a490f7165725d311bb668814edb8d1)
+- Contract Verified
 
 ## Features
 - ✅ Smart contract deployed on RSK Testnet
