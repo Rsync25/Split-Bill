@@ -1,14 +1,14 @@
 import hre from "hardhat";
 
 async function main() {
-  console.log("Deploying SimpleSplitBill contract...");
+  console.log("Deploying SimpleEscrow contract...");
   
   const SimpleSplitBill = await hre.ethers.getContractFactory("SimpleSplitBill");
-  const bill = await SimpleSplitBill.deploy();
+  const bill = await SimpleEscrow.deploy();
   
   await bill.deployed();
   
-  console.log("✅ SimpleSplitBill deployed to:", bill.address);
+  console.log("✅ SimpleEscrowd deployed to:", bill.address);
 }
 
 main().catch(console.error);
