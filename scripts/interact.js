@@ -3,8 +3,8 @@ import hre from "hardhat";
 async function main() {
   const contractAddress = "0xeA2B73659d766bC71d18aaCf924D6effA1f2bbbd";
   
-  const SimpleSplitBill = await hre.ethers.getContractFactory("SimpleSplitBill");
-  const contract = SimpleSplitBill.attach(contractAddress);
+  const SimpleEscrow = await hre.ethers.getContractFactory("SimpleEscrow");
+  const contract = SimpleEscrow.attach(contractAddress);
   
   console.log("Contract connected to:", contract.address);
   

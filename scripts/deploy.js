@@ -1,14 +1,22 @@
-import hre from "hardhat";
+cat > scripts/deploy.js << 'EOF'
+const hre = require("hardhat");
 
 async function main() {
   console.log("Deploying SimpleEscrow contract...");
   
-  const SimpleSplitBill = await hre.ethers.getContractFactory("SimpleSplitBill");
-  const bill = await SimpleEscrow.deploy();
+  // IMPORTANT: Use the correct contract name
+  const Escrow = await hre.ethers.getContractFactory("SimpleEscrow");
+  const escrow = await Escrow.deploy();
   
-  await bill.deployed();
+  await escrow.deployed();
   
-  console.log("✅ SimpleEscrowd deployed to:", bill.address);
+  console.log("✅ SimpleEscrow deployed to:", escrow.address);
+  console.log("\n📝 Add this address to your frontend App.js");
+  console.log(`const CONTRACT_ADDRESS = "${escrow.address}";`);
 }
 
-main().catch(console.error);
+main().catch((error) => {
+  console.error(error);
+  process.exitCode = 1;
+});
+EOF
