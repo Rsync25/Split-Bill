@@ -1,10 +1,8 @@
-cat > scripts/deploy.js << 'EOF'
 const hre = require("hardhat");
 
 async function main() {
   console.log("Deploying SimpleEscrow contract...");
   
-  // IMPORTANT: Use the correct contract name
   const Escrow = await hre.ethers.getContractFactory("SimpleEscrow");
   const escrow = await Escrow.deploy();
   
@@ -19,4 +17,3 @@ main().catch((error) => {
   console.error(error);
   process.exitCode = 1;
 });
-EOF
