@@ -1,9 +1,9 @@
-import "@nomiclabs/hardhat-ethers";
+import "@nomicfoundation/hardhat-ethers"; // ✅ Hardhat 3 plugin
 import dotenv from "dotenv";
 
 dotenv.config();
 
-export default {
+const config = {
   solidity: "0.8.20",
   networks: {
     rskTestnet: {
@@ -13,3 +13,5 @@ export default {
     }
   }
 };
+
+export default config;
