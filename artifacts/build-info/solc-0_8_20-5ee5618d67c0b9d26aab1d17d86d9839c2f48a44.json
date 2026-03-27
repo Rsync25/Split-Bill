@@ -1,0 +1,35 @@
+{
+  "_format": "hh3-sol-build-info-1",
+  "id": "solc-0_8_20-5ee5618d67c0b9d26aab1d17d86d9839c2f48a44",
+  "solcVersion": "0.8.20",
+  "solcLongVersion": "0.8.20+commit.a1b79de6",
+  "userSourceNameMap": {
+    "contracts/SimpleEscrow.sol": "project/contracts/SimpleEscrow.sol"
+  },
+  "input": {
+    "language": "Solidity",
+    "settings": {
+      "evmVersion": "shanghai",
+      "outputSelection": {
+        "*": {
+          "": [
+            "ast"
+          ],
+          "*": [
+            "abi",
+            "evm.bytecode",
+            "evm.deployedBytecode",
+            "evm.methodIdentifiers",
+            "metadata"
+          ]
+        }
+      },
+      "remappings": []
+    },
+    "sources": {
+      "project/contracts/SimpleEscrow.sol": {
+        "content": "// SPDX-License-Identifier: MIT\npragma solidity ^0.8.20;\n\ncontract SimpleEscrow {  // Just renamed\n    struct Escrow {  // Renamed from Bill\n        string title;\n        uint totalAmount;\n        uint deadline;\n        address payer;  // Renamed from creator\n        address payee;  // NEW FIELD\n        mapping(address => bool) hasApproved;  // Renamed from hasPaid\n        address[] participants;  // [payer, payee]\n        bool settled;\n    }\n    \n    mapping(uint => Escrow) public escrows;  // Renamed from bills\n    uint public escrowCount;  // Renamed from billCount\n    \n    event EscrowCreated(uint escrowId, string title, uint amount, address payer, address payee);\n    event Approved(uint escrowId, address approver);\n    event Completed(uint escrowId, address payer, uint amount);\n    \n    function createEscrow(  // Renamed from createBill\n        string memory _title, \n        uint _totalAmount,\n        uint _deadline,\n        address _payee  // NEW PARAMETER\n    ) external returns (uint) {\n        require(_payee != address(0), \"Invalid payee\");\n        \n        escrowCount++;\n        Escrow storage escrow = escrows[escrowCount];\n        escrow.title = _title;\n        escrow.totalAmount = _totalAmount;\n        escrow.deadline = _deadline;\n        escrow.payer = msg.sender;\n        escrow.payee = _payee;\n        \n        // Store both parties\n        escrow.participants.push(msg.sender);\n        escrow.participants.push(_payee);\n        \n        emit EscrowCreated(escrowCount, _title, _totalAmount, msg.sender, _payee);\n        return escrowCount;\n    }\n    \n    function approve(uint _escrowId) external payable {  // Renamed from payBill\n        Escrow storage escrow = escrows[_escrowId];\n        require(block.timestamp <= escrow.deadline, \"Deadline passed\");\n        require(!escrow.settled, \"Already settled\");\n        require(!escrow.hasApproved[msg.sender], \"Already approved\");\n        require(isParticipant(_escrowId, msg.sender), \"Not a participant\");\n        \n        // Payers send funds, payees just approve\n        if (msg.sender == escrow.payer) {\n            require(msg.value >= escrow.totalAmount, \"Must send full amount\");\n        }\n        \n        escrow.hasApproved[msg.sender] = true;\n        emit Approved(_escrowId, msg.sender);\n    }\n    \n    function complete(uint _escrowId) external {  // Renamed from settleBill\n        Escrow storage escrow = escrows[_escrowId];\n        require(msg.sender == escrow.payer, \"Only payer\");\n        require(allApproved(_escrowId), \"Not all approved\");\n        require(!escrow.settled, \"Already settled\");\n        \n        escrow.settled = true;\n        payable(escrow.payee).transfer(address(this).balance);\n        \n        emit Completed(_escrowId, escrow.payer, address(this).balance);\n    }\n    \n    function refund(uint _escrowId) external {  // NEW FUNCTION\n        Escrow storage escrow = escrows[_escrowId];\n        require(msg.sender == escrow.payer, \"Only payer\");\n        require(block.timestamp > escrow.deadline, \"Deadline not passed\");\n        require(!escrow.settled, \"Already settled\");\n        require(!allApproved(_escrowId), \"All approved - cannot refund\");\n        \n        escrow.settled = true;\n        payable(escrow.payer).transfer(address(this).balance);\n    }\n    \n    function isParticipant(uint _escrowId, address _user) internal view returns (bool) {\n        Escrow storage escrow = escrows[_escrowId];\n        return (_user == escrow.payer || _user == escrow.payee);\n    }\n    \n    function allApproved(uint _escrowId) internal view returns (bool) {\n        Escrow storage escrow = escrows[_escrowId];\n        return (escrow.hasApproved[escrow.payer] && escrow.hasApproved[escrow.payee]);\n    }\n    \n    function getEscrow(uint _escrowId) external view returns (\n        string memory title,\n        uint totalAmount,\n        uint deadline,\n        address payer,\n        address payee,\n        bool settled,\n        bool payerApproved,\n        bool payeeApproved\n    ) {\n        Escrow storage escrow = escrows[_escrowId];\n        return (\n            escrow.title,\n            escrow.totalAmount,\n            escrow.deadline,\n            escrow.payer,\n            escrow.payee,\n            escrow.settled,\n            escrow.hasApproved[escrow.payer],\n            escrow.hasApproved[escrow.payee]\n        );\n    }\n}\n"
+      }
+    }
+  }
+}
