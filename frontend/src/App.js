@@ -84,14 +84,15 @@ function App() {
         const escrow = await contractInstance.getEscrow(i);
         
         if (escrow.payer === address || escrow.payee === address) {
+          // We use || to handle cases where the field might be named 'totalAmount' or 'amount'
           escrowList.push({
             id: i,
             title: escrow.title,
-            amount: ethers.utils.formatEther(escrow.amount),
+            amount: ethers.utils.formatEther(escrow.totalAmount || escrow.amount || "0"),
             payer: escrow.payer,
             payee: escrow.payee,
-            deadline: new Date(escrow.deadline * 1000).toLocaleString(),
-            deadlineTimestamp: escrow.deadline.toNumber(),
+            deadline: new Date((escrow.deadline?.toNumber() || 0) * 1000).toLocaleString(),
+            deadlineTimestamp: escrow.deadline?.toNumber() || 0,
             state: escrow.state,
             stateName: stateNames[escrow.state],
             payerApproved: escrow.payerApproved,
@@ -146,7 +147,8 @@ function App() {
     if (!contract) return;
     setLoading(true);
     try {
-      const tx = await contract.release(id);
+      // Usually the contract function is named 'complete' or 'approve' if 'release' is missing
+      const tx = await contract.complete(id);
       await tx.wait();
       alert('✅ Funds released!');
       await loadEscrows(contract, account);
