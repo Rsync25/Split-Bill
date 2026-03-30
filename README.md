@@ -200,6 +200,11 @@ For questions about this project, please reach out via the course platform.
 
 ---
 
+## Tests sucessful!
+
+ - Test 2: https://explorer.testnet.rootstock.io/tx/0xc41469de1dd271f979c5b708beec6964c12cbb32982476e8c5d848d8722aba60
+ - Test 1: https://explorer.testnet.rootstock.io/tx/0x52f531083003ae27a6a72df45e7916d40398689f6a2f30e89fcf97754c0f24a7
+
 **Made for RSK Developer Course Capstone Project** 🚀
 
 ---
