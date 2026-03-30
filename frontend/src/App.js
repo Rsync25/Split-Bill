@@ -115,12 +115,14 @@ function App() {
     try {
       const amountWei = ethers.utils.parseEther(amount);
       const deadlineDaysNum = parseInt(deadlineDays);
-      
+      // Convert days into a Unix timestamp (seconds) as expected by the contract
+      const deadlineTimestamp = Math.floor(Date.now() / 1000) + (deadlineDaysNum * 24 * 60 * 60);
+
       const tx = await contract.createEscrow(
         title,
-        payee,
-        deadlineDaysNum,
-        { value: amountWei }
+        amountWei,
+        deadlineTimestamp,
+        payee
       );
       
       await tx.wait();
